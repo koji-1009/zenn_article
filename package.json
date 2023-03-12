@@ -18,6 +18,6 @@
   },
   "homepage": "https://github.com/koji-1009/zenn_article#readme",
   "dependencies": {
-    "zenn-cli": "^0.1.140"
+    "zenn-cli": "^0.1.141"
   }
 }
