@@ -11,17 +11,17 @@ published_at: "2023-12-09 21:00"
 
 # はじめに
 
-Flutterでアプリを開発していると、[freezed](https://pub.dev/packages/freezed)や[riverpod_generator](https://pub.dev/packages/riverpod_generator)などのコード生成ライブラリを使うことが多いと思います。
+Flutterでアプリを開発していると、[freezed](https://pub.dev/packages/freezed)や[riverpod_generator](https://pub.dev/packages/riverpod_generator)などのコード生成ライブラリを使うことが多くなります。
 
-これまで、いくつかのプロジェクトに参加してきたのですが、チームごとに管理方法が異なっていることが多いように感じます。
+筆者はいくつかのプロジェクトに参加してきたのですが、チームごとに、これら自動生成されるファイルの管理が異なっていました。
 そこで、これらのライブラリが生成するコード管理について、私見をまとめます。
 
 ## mainブランチのあるべき姿
 
-前提として、mainブランチは「市場にリリースされているコード」がそのまま管理されているべきだと考えています。`git clone`したら最新のリリースに対応するコードが手に入り、`git checkout`でタグがついたcommitに移動すれば、そのリリース時のコードが手に入るようになっているべきだと思います。
-Flutterにおいては、`pubspec.lock`ファイルが利用ライブラリのバージョンを固定しているため、比較的簡単にこのような状態を実現できます。(ビルドしているFlutterのバージョンについては、`flutter downgrade`コマンドの対応や、`fvm`などの導入で実現できます)
+前提として、mainブランチは「市場にリリースされているコード」がそのまま管理されているべきだと考えています。
+`git clone`したら最新のリリースに対応するコードが手に入り、`git checkout`でタグがついたcommitに移動すれば、そのリリース時のコードが手に入るようになっているべきだと思います。Flutterにおいては、`pubspec.lock`ファイルが利用ライブラリのバージョンを固定しているため、比較的簡単にこのような状態を実現できます。(ビルドしているFlutterのバージョンについては、`flutter downgrade`コマンドの対応や、`fvm`などの導入で実現できます)
 
-この観点からすると、`gitignore`に`.g.dart`や`.freezed.dart`を追加するのは避けるべきだと考えています。
+この観点からすると、`gitignore`に`.g.dart`や`.freezed.dart`を追加するのは避けるべき、だと言えます。
 たしかに`build_runner`などのバージョンも記載されているので、都度`dart pub run build_runner build`を実行すれば、同じコードが生成できるはずです。しかし、この手間を「特定のgit tagのバージョンを確認しなければならない」時に必須とするのは、大きな負担です。
 
 ## 生成コードの管理
