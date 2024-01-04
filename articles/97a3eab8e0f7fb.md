@@ -20,7 +20,7 @@ assetsとして同梱したり、ネットワークから取得したりと、�
 
 と言う程で、その実は画像読み込みライブラリを自作した際の、コードリーディングの振り返りメモです。よろしくお願いします。
 
-## ImageとImageProvider
+# ImageとImageProvider
 
 https://api.flutter.dev/flutter/widgets/Image-class.html
 
@@ -283,7 +283,7 @@ class _ImageState extends State<Image> with WidgetsBindingObserver {
 `ScrollAwareImageProvider`が登場しましたが、一旦目を瞑りましょう。
 すると、これで`final ImageProvider image;`で指定した`ImageProvider`が、`_handleImageFrame`の呼び出しにつながることがわかりました。当初の予想通りですね。
 
-## ImageProvider
+# ImageProvider
 
 長々と`Image`を読み進めてみると、`Image`クラスが**RowImageを表示するためのWidget**であることがわかります。
 読み込み処理やキャッシュ処理などは、全て`ImageProvider`の責務です。
@@ -324,7 +324,7 @@ https://api.flutter.dev/flutter/painting/ImageProvider-class.html
 
 このうち、`ScrollAwareImageProvider`は`Image`の中で登場しましたが、明らかに他の`ImageProvider`とは異なる役割を担っています。まず、`ScrollAawareImageProvider`をさっと確認しつつ、次の`ImageProvider`を詳細にみていきます。
 
-### ScrollAwareImageProvider
+## ScrollAwareImageProvider
 
 https://api.flutter.dev/flutter/widgets/ScrollAwareImageProvider-class.html
 
@@ -338,7 +338,7 @@ https://api.flutter.dev/flutter/widgets/ScrollAwareImageProvider-class.html
 
 さて、後半の内容を把握するためには、`ImageCache`の仕組みを理解する必要があります。
 
-#### ImageCache
+### ImageCache
 
 このあと紹介するのですが、`ImageProvider`で画像を取得すると、`imageCache`にキャッシュされます。
 このため、`ImageProvider`の継承クラスが正確な実装となっていれば、`ScrollAwareImageProvider`が画像の再取得やデコードを行う必要がありません。
@@ -399,7 +399,7 @@ https://api.flutter.dev/flutter/painting/ImageCacheStatus-class.html
 一方で、`live`はイマイチ掴みかねる要素です。
 これは`putIfAbsent`で返却された`ImageStreamCompleter`が存在している限り、保持される`_liveImages`を指しています。これは実装を見ていくと、`_ImageState`の`_resolveImage`で取得された`ImageStream`に紐づいていることが確認できます。簡略に言うと、WidgetのStateで保持されている`ImageStreamCompleter`が、`ImageCache`の`_liveImages`に保持されているということです。
 
-### MemoryImage
+## MemoryImage
 
 `ImageProvider`の最もシンプルな実装は、`MemoryImage`です。
 `MemoryImage`は`Uint8List`、つまり画像のバイト列を受け取り表示します。
@@ -511,14 +511,14 @@ https://github.com/flutter/engine/blob/3.16.0/lib/ui/painting.dart#L2191
 
 話が横道に逸れてしまったのですが、`MemoryImage`の実装が確認できました。ようやく、`ImageProvider`とはなんなのかが掴めたのではないでしょうか？
 
-### NetworkImage
+## NetworkImage
 
 https://api.flutter.dev/flutter/painting/NetworkImage-class.html
 
 `NetworkImage`は、`MemoryImage`にネットワークからデータを取得する処理が追加された実装です。
 ただ、`MemoryImage`と異なる点が2つあります。1つは「データの読み込みに時間がかかる」こと、もう1つは「webとそれ以外で通信に関する処理が異なる」ことです。
 
-#### データの読み込み経過の通知
+### データの読み込み経過の通知
 
 `MemoryImage`は、`Uint8List`を受け取っているので、データの読み込みに時間がかかることはありません。
 一方で、`NetworkImage`はネットワークからデータを取得するため、読み込みに時間がかかることがあります。
@@ -545,7 +545,7 @@ https://api.flutter.dev/flutter/painting/ImageChunkEvent-class.html
 
 `NetworkImage`では、ネットワークリクエストを適切に処理し、`ImageChunkEvent`を生成する必要があります。
 
-#### ネットワークリクエストの処理
+### ネットワークリクエストの処理
 
 HTTPのGETリクエストを行う場合、大抵は[http](https://pub.dev/packages/http)や[dio](https://pub.dev/packages/dio)を利用します。
 が、`NetworkImage`はFlutterの基本的なクラスであり、これらのクラスを利用していません。
@@ -668,7 +668,7 @@ class ResizeImage extends ImageProvider<ResizeImageKey> {
 `Image`の各コンストラクタには、`cacheWidth`と`cacheHeight`があります。
 これらを指定しない場合、つまり`null`の場合には、リサイズの必要がないので、`provider`をそのまま返却しています。
 
-#### obtainKey
+### obtainKey
 
 `ResizeImage`の実装を見ていきましょう。
 まずは、`obtainKey`です。
@@ -709,7 +709,7 @@ class ResizeImage extends ImageProvider<ResizeImageKey> {
 
 `ResizeImageKey`はデータクラスなので、特に気にする必要はありません。^[コードを見る限り、record typeでも良さそうです]
 
-#### loadImage
+### loadImage
 
 次に、`loadImage`を見ていきましょう。
 ここまでの実装を見てきた方であれば、`loadImage`の実装は簡単に読めると思います。
@@ -724,12 +724,12 @@ https://github.com/flutter/flutter/blob/78666c8dc5/packages/flutter/lib/src/pain
 `decodeResize`については、これまでに確認してきた`ImageProvider`の実装クラスで`decode(await ui.ImmutableBuffer.fromUint8List(bytes))`を呼び出している箇所に、差し込まれる形でリサイズの指定がなされます。
 処理が長いので引用は避けますが、`Image`クラスのコンストラクタを利用している場合、`policy = ResizeImagePolicy.exact`かつ`allowUpscaling = false`となります。これは、Resizeの目的が**メモリの使用量を抑える**ことにあることを考えると、妥当な設定です。
 
-#### `ResizedImage`の使い所
+### ResizedImageの使いどころ
 
 `ResizeImage`は、`Image.new`のコンストラクタで指定することで、任意の設定を与えることができます。
 もしも画像のリサイズを細かく制御したい場合には、設定してみてください。
 
-## まとめ
+# おわりに
 
 Flutterの`Image`と`ImageProvider`の実装を追ってみました。
 
