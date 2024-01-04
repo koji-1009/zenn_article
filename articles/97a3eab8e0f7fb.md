@@ -350,7 +350,7 @@ https://api.flutter.dev/flutter/painting/ImageCache-class.html
 > Implements a least-recently-used cache of up to 1000 images, and up to 100 MB. The maximum size can be adjusted using [maximumSize](https://api.flutter.dev/flutter/painting/ImageCache/maximumSize.html) and [maximumSizeBytes](https://api.flutter.dev/flutter/painting/ImageCache/maximumSizeBytes.html).
 
 `ImageCache`は、メモリで画像をキャッシュするためのクラスです。Lruキャッシュを利用しており、メモリを効率的に利用しています。
-Androidエンジニアの方であれば、PicassoやGlideのメモリキャッシュと同じ方式と言えば、一発でわかるハズです。^[Coilもコードを見る感じ、Lruキャッシュっぽいですね。]
+Androidエンジニアの方であれば、PicassoやGlideのメモリキャッシュと同じ方式と言えば、一発でわかるハズです。^[Coilもコードを見る感じ、Lruキャッシュっぽいですね]
 
 `ImageCache`のインスタンスは、`PaintingBinding.instance.imageCache`で取得できます。
 [PaintingBinding](https://api.flutter.dev/flutter/painting/PaintingBinding-mixin.html)のsingletonインスタンス上で`imageCache`を保持しています。`ImageCache`は1つで十分と言うか、1つだからこそ意味があるので、この実装は妥当ですね。
