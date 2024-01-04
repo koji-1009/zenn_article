@@ -707,7 +707,7 @@ class ResizeImage extends ImageProvider<ResizeImageKey> {
 }
 ```
 
-`ResizeImageKey`はデータクラスなので、特に気にする必要はありません。^[コードを見る限り、record typeでも良さそうです]
+`ResizeImageKey`は単なるデータクラスなので、特に気にする必要はありません。^[コードを見る限り、record typeでも良さそうです。コンストラクタをprivateにするためにclassになっているのかな？]実は`class ResizeImage extends ImageProvider<ResizeImageKey>`と定義されているので、外部に公開されている必要があるクラスもでもあったりします。
 
 ### loadImage
 
@@ -716,7 +716,8 @@ class ResizeImage extends ImageProvider<ResizeImageKey> {
 
 https://github.com/flutter/flutter/blob/78666c8dc5/packages/flutter/lib/src/painting/image_provider.dart#L1274-L1342
 
-`final ImageStreamCompleter completer = imageProvider.loadImage(key._providerCacheKey, decodeResize);`を、ちょっとだけ、読み解いてみましょう。
+`final ImageStreamCompleter completer = imageProvider.loadImage(key._providerCacheKey, decodeResize);`が最も重要な箇所です。
+少しだけ確認します。
 
 `key._providerCacheKey`は、`obtainKey`で生成した`ResizeImageKey`が渡されます。
 先ほど確認した通り、`ResizeImageKey`は`ImageProvider`の`key`とリサイズの設定を合成したものです。このため、元データの`key`とは一致しません。このため`ImageCache`上で、`key`が衝突することはありません。
