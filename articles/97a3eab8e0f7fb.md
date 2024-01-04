@@ -20,7 +20,7 @@ assetsとして同梱したり、ネットワークから取得したりと、�
 
 と言う程で、その実は画像読み込みライブラリを自作した際の、コードリーディングの振り返りメモです。よろしくお願いします。
 
-# ImageとImageProvider
+# Image
 
 https://api.flutter.dev/flutter/widgets/Image-class.html
 
