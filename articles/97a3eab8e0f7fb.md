@@ -283,6 +283,88 @@ class _ImageState extends State<Image> with WidgetsBindingObserver {
 `ScrollAwareImageProvider`が登場しましたが、一旦目を瞑りましょう。
 すると、これで`final ImageProvider image;`で指定した`ImageProvider`が、`_handleImageFrame`の呼び出しにつながることがわかりました。当初の予想通りですね。
 
+# ImageCache
+
+さて、`ImageProvider`を読む上で避けて通れない、`ImageCache`について見ていきましょう。
+
+`ImageProvider`のコードを読んでいくと明らかなのですが、`ImageProvider`内で読み込まれる画像は、`ImageCache`にキャッシュされます。
+このキャッシュ処理が複雑なので、あらかじめ`ImageCache`を確認しておき、`ImageProvider`のロジックをさっくり読んでしまおう、という試みです。
+
+https://api.flutter.dev/flutter/painting/ImageCache-class.html
+
+> Class for caching images.
+> 
+> Implements a least-recently-used cache of up to 1000 images, and up to 100 MB. The maximum size can be adjusted using [maximumSize](https://api.flutter.dev/flutter/painting/ImageCache/maximumSize.html) and [maximumSizeBytes](https://api.flutter.dev/flutter/painting/ImageCache/maximumSizeBytes.html).
+
+`ImageCache`は、メモリで画像をキャッシュするためのクラスです。Lruキャッシュを利用しており、メモリを効率的に利用しています。
+Androidエンジニアの方であれば、PicassoやGlideのメモリキャッシュと同じ方式と言えば、一発でわかるハズです。^[Coilもコードを見る感じ、Lruキャッシュっぽいですね]
+
+`ImageCache`のインスタンスは、`PaintingBinding.instance.imageCache`で取得できます。
+[PaintingBinding](https://api.flutter.dev/flutter/painting/PaintingBinding-mixin.html)のsingletonインスタンス上で`imageCache`を保持しています。`ImageCache`は1つで十分と言うか、1つだからこそ意味があるので、この実装は妥当ですね。
+
+---
+
+`ImageCache`の実装を読んでいると、最もびっくりさせられるのは**ImageProviderをキー**に**ImageStreamCompleterを管理**している点です。
+
+Lruキャッシュで新規にキャッシュを追加する場合には、`putIfAbsent`メソッドを利用します。メソッドを確認していきましょう。
+
+https://api.flutter.dev/flutter/painting/ImageCache/putIfAbsent.html
+
+> Returns the previously cached [ImageStream](https://api.flutter.dev/flutter/painting/ImageStream-class.html) for the given key, if available; if not, calls the given callback to obtain it first. In either case, the key is moved to the 'most recently used' position.
+> 
+> In the event that the loader throws an exception, it will be caught only if onError is also provided. When an exception is caught resolving an image, no completers are cached and null is returned instead of a new completer.
+
+実際にコードを見てみると、次のような記述になっています。なにこれ、って感じですね。
+
+https://github.com/flutter/flutter/blob/3.16.0/packages/flutter/lib/src/painting/image_cache.dart#L322-L455
+
+読み解ける方はそのまま読んでもらった方が良い^[解説できない内容が多いので……]のですが、一応解説を試みます。
+
+`ImageCacache`では次の3つの`Map`を管理しています。
+この`Map`は順序を持っています。このため`first`で古いものから、`last`で新しいものからアクセスすることができます。
+
+* `final Map<Object, _PendingImage> _pendingImages = <Object, _PendingImage>{};`
+* `final Map<Object, _CachedImage> _cache = <Object, _CachedImage>{}`
+* `final Map<Object, _LiveImage> _liveImages = <Object, _LiveImage>{};`
+
+この3つのMapは、それぞれ異なる目的を持ちます。
+コードを読んで把握しようとすると大変辛いので、`ImageCache#statusForKey`で取得できる`ImageCacheStatus`クラスの説明を確認します。^[一度コードから説明しようとして、この節は全部書き直しています]
+
+https://github.com/flutter/flutter/blob/3.16.0/packages/flutter/lib/src/painting/image_cache.dart#L458-L464
+
+`ImageCacheSatus`の生成方法を見ましたね？
+このようにbool値を判定していることを踏まえて、`ImageCacheStatus`のドキュメントを確認します。
+
+https://api.flutter.dev/flutter/painting/ImageCacheStatus-class.html
+
+> A pending image is one that has not completed yet. It may also be tracked as live because something is listening to it.
+> 
+> A keepAlive image is being held in the cache, which uses Least Recently Used semantics to determine when to evict an image. These images are subject to eviction based on ImageCache.maximumSizeBytes and ImageCache.maximumSize. It may be live, but not pending.
+> 
+> A live image is being held until its ImageStreamCompleter has no more listeners. It may also be pending or keepAlive.
+
+`pending`で言及されているのは、`putIfAbsent`の第2引数で指定した`loader`であり、その実態は`ImageProvider#loadImage`です。
+また`pending`つまり`_pendingImages`で完了した処理は、`keepAlive`つまり`_cache`に移し替えられます。この2つが保持されていることと、2つの関係性は、直感的に理解しやすいと思います。
+
+一方で、`live`はイマイチ掴みかねる要素です。
+`pending`と`keepAlive`で保持するべきキャッシュは十分なように思えます。というかコメントにもあるように、`live`はこれらのキャッシュと二重に保持されます。なぜなのでしょうか？
+
+`_liveImages`に保持され`live`の判定になるのは、`putIfAbsent`で返却された`ImageStreamCompleter`が存在している状態です。
+この**存在している限り**は、`Image`クラスのStateとして保持されていることを意味します。コードとしては`_ImageState`の`_resolveImage`にて、`ImageStream`が生成されStateとして保持されている状態です。
+
+これは、複数の画像を`Column`で並べたようなケースを想定すると、イメージしやすいのではないでしょうか。
+`Column`は、子要素のWidgetを全て生成します。すると、子要素になっているすべての`Image`において、`ImageStreamCompleter`は保持されている状態になります。これが`ListView.builder`だと、`keepAlive`の指定にもよるのですが、大抵は画面に表示されている子要素のみが保持されている状態です。
+
+このように**今表示されている画像**が、`live`つまり`_liveImages`にキャッシュされます。
+
+`_cache`と`_liveImages`には、キャッシュのサイズがチェックされるかどうか、という違いがあります。
+`_cache`は設定されたサイズを超えると、古いものから削除される処理があります。一方で、`_liveImages`にはありません。30MBぐらいのでかい画像が複数表示されていることを見ると、納得のいく動きになっているのがわかると思います。
+
+---
+
+以上で、`ImageCache`の実装を確認できました。
+ここから、本題である`ImageProvider`を確認します。
+
 # ImageProvider
 
 長々と`Image`を読み進めてみると、`Image`クラスが**RowImageを表示するためのWidget**であることがわかります。
@@ -336,68 +418,8 @@ https://api.flutter.dev/flutter/widgets/ScrollAwareImageProvider-class.html
 
 前半は『`ScrollAwareImageProvider`は、`Scrollable.recommendDeferredLoadingForContext`を利用して、高速スクロール時に画像を読み込まないようにします。』ということですね。高速スクロール時に画像を読み込まないことで、スクロールのパフォーマンスを保っているのかな、と思います。
 
-さて、後半の内容を把握するためには、`ImageCache`の仕組みを理解する必要があります。
-
-## ImageCache
-
-このあと紹介するのですが、`ImageProvider`で画像を取得すると、`imageCache`にキャッシュされます。
-このため、`ImageProvider`の継承クラスが正確な実装となっていれば、`ScrollAwareImageProvider`が画像の再取得やデコードを行う必要がありません。
-
-https://api.flutter.dev/flutter/painting/ImageCache-class.html
-
-> Class for caching images.
-> 
-> Implements a least-recently-used cache of up to 1000 images, and up to 100 MB. The maximum size can be adjusted using [maximumSize](https://api.flutter.dev/flutter/painting/ImageCache/maximumSize.html) and [maximumSizeBytes](https://api.flutter.dev/flutter/painting/ImageCache/maximumSizeBytes.html).
-
-`ImageCache`は、メモリで画像をキャッシュするためのクラスです。Lruキャッシュを利用しており、メモリを効率的に利用しています。
-Androidエンジニアの方であれば、PicassoやGlideのメモリキャッシュと同じ方式と言えば、一発でわかるハズです。^[Coilもコードを見る感じ、Lruキャッシュっぽいですね]
-
-`ImageCache`のインスタンスは、`PaintingBinding.instance.imageCache`で取得できます。
-[PaintingBinding](https://api.flutter.dev/flutter/painting/PaintingBinding-mixin.html)のsingletonインスタンス上で`imageCache`を保持しています。`ImageCache`は1つで十分と言うか、1つだからこそ意味があるので、この実装は妥当ですね。
-
----
-
-`ImageCache`の実装を読んでいると、最もびっくりさせられるのは**ImageProviderをキー**に**ImageStreamCompleterを管理**している点です。
-
-Lruキャッシュで新規にキャッシュを追加する場合には、`putIfAbsent`メソッドを利用します。メソッドを確認していきましょう。
-
-https://api.flutter.dev/flutter/painting/ImageCache/putIfAbsent.html
-
-> Returns the previously cached [ImageStream](https://api.flutter.dev/flutter/painting/ImageStream-class.html) for the given key, if available; if not, calls the given callback to obtain it first. In either case, the key is moved to the 'most recently used' position.
-> 
-> In the event that the loader throws an exception, it will be caught only if onError is also provided. When an exception is caught resolving an image, no completers are cached and null is returned instead of a new completer.
-
-実際にコードを見てみると、次のような記述になっています。なにこれ、って感じですね。
-
-https://github.com/flutter/flutter/blob/3.16.0/packages/flutter/lib/src/painting/image_cache.dart#L322-L455
-
-読み解ける方はそのまま読んでもらった方が良い^[解説できない内容が多いので……]のですが、一応解説を試みます。
-
-`ImageCacache`では次の3つの`Map`を管理しています。一般にLruCacheはLinkedHashMapを利用すると思われますが、ここでは`{}`、つまり`HashMap`を利用しています。
-
-* `final Map<Object, _PendingImage> _pendingImages = <Object, _PendingImage>{};`
-* `final Map<Object, _CachedImage> _cache = <Object, _CachedImage>{}`
-* `final Map<Object, _LiveImage> _liveImages = <Object, _LiveImage>{};`
-
-この3つのプロパティの目的は、`ImageCache#statusForKey`で取得できる`ImageCacheStatus`クラスの説明を見るとわかりやすいです。
-
-https://github.com/flutter/flutter/blob/3.16.0/packages/flutter/lib/src/painting/image_cache.dart#L458-L464
-
-`ImageCacheSatus`インスタンスが上のように生成されることを確認した上で、`ImageCacheStatus`のドキュメントを見てみましょう。
-
-https://api.flutter.dev/flutter/painting/ImageCacheStatus-class.html
-
-> A pending image is one that has not completed yet. It may also be tracked as live because something is listening to it.
-> 
-> A keepAlive image is being held in the cache, which uses Least Recently Used semantics to determine when to evict an image. These images are subject to eviction based on ImageCache.maximumSizeBytes and ImageCache.maximumSize. It may be live, but not pending.
-> 
-> A live image is being held until its ImageStreamCompleter has no more listeners. It may also be pending or keepAlive.
-
-`pending`で言及されているのは、`putIfAbsent`の第2引数で指定した`loader`であり、その実態はこのあと確認する`loadImage`+αの処理です。
-そして実装を追っていくと、`pending`つまり`_pendingImages`で完了した処理は、`keepAlive`つまり`_cache`に移し替えられます。この2つは、直感的に理解しやすいと思います。
-
-一方で、`live`はイマイチ掴みかねる要素です。
-これは`putIfAbsent`で返却された`ImageStreamCompleter`が存在している限り、保持される`_liveImages`を指しています。これは実装を見ていくと、`_ImageState`の`_resolveImage`で取得された`ImageStream`に紐づいていることが確認できます。簡略に言うと、WidgetのStateで保持されている`ImageStreamCompleter`が、`ImageCache`の`_liveImages`に保持されているということです。
+後半の内容は、先ほど確認した`ImageCache`の仕組みを前提としている、と言うことです。
+`ImageCache`では、読み込み前から読み込み後、現在参照されている画像読み込み処理をキャッシュしています。このため、`ImageProvider`の継承クラスが正確な実装となり、適切に`imageCache`を利用していれば、ラッパーである`ScrollAwareImageProvider`が画像の再取得やデコードを行う必要がありません。
 
 ## MemoryImage
 
