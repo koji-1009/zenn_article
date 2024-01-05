@@ -352,7 +352,7 @@ https://github.com/flutter/flutter/blob/3.16.0/packages/flutter/lib/src/painting
 この`Map`は順序を持っています。このため`first`で古いものから、`last`で新しいものからアクセスすることができます。
 
 * `final Map<Object, _PendingImage> _pendingImages = <Object, _PendingImage>{};`
-* `final Map<Object, _CachedImage> _cache = <Object, _CachedImage>{}`
+* `final Map<Object, _CachedImage> _cache = <Object, _CachedImage>{};`
 * `final Map<Object, _LiveImage> _liveImages = <Object, _LiveImage>{};`
 
 この3つのMapは、それぞれ異なる目的を持ちます。
