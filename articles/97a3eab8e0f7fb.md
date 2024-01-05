@@ -93,7 +93,7 @@ class Image extends StatefulWidget {
 
 ここで現れる`ResizeImage`、`ImageProvider`、`NetworkImage`、`FileImage`、`ExactAssetImage`、`AssetImage`、`MemoryImage`は(当然ですが)`ImageProvider`を継承しています。また、ここを確認すると`Image.new`が`ImageProvider`を要求しているので、`ImageProvider`を自作した場合には`Image.new`を利用すればいいことがわかりますね。
 
-`Image`クラスは非常によくできており、リソースの読み込み周りを`ImageProvider`に分割することで、Widgetとしての処理を共通化しています。`build`メソッド周辺を見てみましょう。(ざっくりと引用します)
+`Image`クラスは非常によくできており、リソースの読み込み周りを`ImageProvider`に分割することで、Widgetとしての処理を共通化しています。`build`メソッド周辺を見てみましょう。
 
 ```dart
 class _ImageState extends State<Image> with WidgetsBindingObserver {
@@ -234,16 +234,23 @@ typedef ImageChunkListener = void Function(ImageChunkEvent event);
 typedef ImageErrorListener = void Function(Object exception, StackTrace? stackTrace);
 ```
 
-最後に、`_getListener`メソッドのことを頭の片隅に置きつつ、次の処理を追いかけます。
+続いて、`_getListener`メソッドのことを頭の片隅に置きつつ、`ImageStream`を処理している箇所を追いかけます。
 可読性のために、いくつかの処理を省略しています。特に`TickerMode`あたりの分岐をバッサリと省略しているので、アニメーション処理に関心がある方は、ぜひソースコードを読んでみてください。
 
 ```dart
 class _ImageState extends State<Image> with WidgetsBindingObserver {
   ImageStream? _imageStream;
+  bool _isListeningToStream = false;
 
   @override
   void didChangeDependencies() {
     _resolveImage();
+
+    if (TickerMode.of(context)) {
+      _listenToStream();
+    } else {
+      _stopListeningToStream(keepStreamAlive: true);
+    }
 
     super.didChangeDependencies();
   }
@@ -266,6 +273,10 @@ class _ImageState extends State<Image> with WidgetsBindingObserver {
       return;
     }
 
+    if (_isListeningToStream) {
+      _imageStream!.removeListener(_getListener());
+    }
+
     if (!widget.gaplessPlayback) {
       setState(() { _replaceImage(info: null); });
     }
@@ -276,19 +287,37 @@ class _ImageState extends State<Image> with WidgetsBindingObserver {
     });
 
     _imageStream = newStream;
+    if (_isListeningToStream) {
+      _imageStream!.addListener(_getListener());
+    }
+  }
+
+  void _listenToStream() {
+    if (_isListeningToStream) {
+      return;
+    }
+
+    _imageStream!.addListener(_getListener());
+    _completerHandle?.dispose();
+    _completerHandle = null;
+
+    _isListeningToStream = true;
   }
 }
 ```
 
-`ScrollAwareImageProvider`が登場しましたが、一旦目を瞑りましょう。
-すると、これで`final ImageProvider image;`で指定した`ImageProvider`が、`_handleImageFrame`の呼び出しにつながることがわかりました。当初の予想通りですね。
+`ScrollAwareImageProvider`が登場しましたが、一旦目を瞑りましょう。これは後ほど`ImageProvider`の箇所で確認します。
+`_imageStream`に目を向けてみると、`TickerMode`がtrueであれば、`_imageStream`と`getListener`が紐づいていることがわかります。`TickerMode`がfalseである場合には、そもそもwidgetの更新アニメーションが走らない状態なので、`Image`ウィジェットが適切に動作していない状態になっている……ハズです。
+
+以上で、`final ImageProvider image;`で指定した`ImageProvider`が、`_handleImageFrame`の呼び出しにつながることがわかりました。
+当初の予想通りですね。
+
+---
+
+続いて、`ImageProvider`を読んでいきたいところなのですが、その前に`ImageCache`を確認します。
+`ImageProvider`のコードを読んでいくと明らかなのですが、`ImageProvider`内で読み込まれる画像は、`ImageCache`にキャッシュされます。このキャッシュ処理が複雑なので、あらかじめ`ImageCache`を確認しておき、`ImageProvider`のロジックをさっくり読んでしまおう、という試みです。
 
 # ImageCache
-
-さて、`ImageProvider`を読む上で避けて通れない、`ImageCache`について見ていきましょう。
-
-`ImageProvider`のコードを読んでいくと明らかなのですが、`ImageProvider`内で読み込まれる画像は、`ImageCache`にキャッシュされます。
-このキャッシュ処理が複雑なので、あらかじめ`ImageCache`を確認しておき、`ImageProvider`のロジックをさっくり読んでしまおう、という試みです。
 
 https://api.flutter.dev/flutter/painting/ImageCache-class.html
 
