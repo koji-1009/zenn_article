@@ -234,8 +234,7 @@ typedef ImageChunkListener = void Function(ImageChunkEvent event);
 typedef ImageErrorListener = void Function(Object exception, StackTrace? stackTrace);
 ```
 
-続いて、`_getListener`メソッドのことを頭の片隅に置きつつ、`ImageStream`を処理している箇所を追いかけます。
-可読性のために、いくつかの処理を省略しています。特に`TickerMode`あたりの分岐をバッサリと省略しているので、アニメーション処理に関心がある方は、ぜひソースコードを読んでみてください。
+続いて、`_getListener`メソッドのことを頭の片隅に置きつつ、`ImageStream`を処理している箇所を追いかけます。なお、可読性のために省略している箇所があります。
 
 ```dart
 class _ImageState extends State<Image> with WidgetsBindingObserver {
