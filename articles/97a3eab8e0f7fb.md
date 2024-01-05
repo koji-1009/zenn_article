@@ -338,7 +338,7 @@ https://api.flutter.dev/flutter/widgets/ScrollAwareImageProvider-class.html
 
 さて、後半の内容を把握するためには、`ImageCache`の仕組みを理解する必要があります。
 
-### ImageCache
+## ImageCache
 
 このあと紹介するのですが、`ImageProvider`で画像を取得すると、`imageCache`にキャッシュされます。
 このため、`ImageProvider`の継承クラスが正確な実装となっていれば、`ScrollAwareImageProvider`が画像の再取得やデコードを行う必要がありません。
@@ -646,7 +646,7 @@ return decode(await ui.ImmutableBuffer.fromUint8List(bytes));
 通信が失敗したケースでは、`ImageCache`からキャッシュの削除を行なっています。万が一キャッシュが残ってしまうと、次に同じURLで画像を取得しようとした時に、通信の失敗結果をキャッシュから取得することになるためです。
 最後に、`finaly`句で`chunkEvents`を`close`しています。後片付けは大事ですね。
 
-### ResizeImage
+## ResizeImage
 
 さて、最後の`ImageProvider`は`ResizeImage`です。
 
