@@ -19,5 +19,13 @@
   "homepage": "https://github.com/koji-1009/zenn_article#readme",
   "dependencies": {
     "zenn-cli": "^0.1.154"
+  },
+  "devDependencies": {
+    "danger": "^12.3.1",
+    "textlint": "^14.0.4",
+    "textlint-rule-preset-ja-technical-writing": "^10.0.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5.4.5"
   }
 }
