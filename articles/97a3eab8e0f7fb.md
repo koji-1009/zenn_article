@@ -18,7 +18,7 @@ assetsとして同梱したり、ネットワークから取得したりと、�
 しかし、この画像を表示する際に`Image`と`ImageProvider`を**理解して**利用したことはあるでしょうか？
 この記事では、ノリで利用しがちな`Image`と`ImageProvider`について理解を深めます。
 
-……というテイで、画像読み込みライブラリを自作した際のコードリーディングの振り返りメモです。よろしくお願いします。
+…というテイで、画像読み込みライブラリを自作した際のコードリーディングの振り返りメモです。よろしくお願いします。
 
 ## Image
 
@@ -306,7 +306,7 @@ class _ImageState extends State<Image> with WidgetsBindingObserver {
 ```
 
 `ScrollAwareImageProvider`が登場しましたが、一旦目を瞑りましょう。これは後ほど`ImageProvider`の箇所で確認します。
-`_imageStream`に目を向けてみると、`TickerMode`がtrueであれば、`_imageStream`と`getListener`が紐づいていることがわかります。`TickerMode`がfalseである場合には、そもそもwidgetの更新アニメーションが走らない状態なので、`Image`ウィジェットが適切に動作していない状態になっている……ハズです。
+`_imageStream`に目を向けてみると、`TickerMode`がtrueであれば、`_imageStream`と`getListener`が紐づいていることがわかります。`TickerMode`がfalseである場合には、そもそもwidgetの更新アニメーションが走らない状態なので、`Image`ウィジェットが適切に動作していない状態になっている…ハズです。
 
 以上で、`final ImageProvider image;`で指定した`ImageProvider`が、`_handleImageFrame`の呼び出しにつながることがわかりました。
 当初の予想通りですね。
@@ -346,7 +346,7 @@ https://api.flutter.dev/flutter/painting/ImageCache/putIfAbsent.html
 
 https://github.com/flutter/flutter/blob/3.16.0/packages/flutter/lib/src/painting/image_cache.dart#L322-L455
 
-読み解ける方はそのまま読んでもらった方が良い^[解説できない内容が多いので……]のですが、一応解説を試みます。
+読み解ける方はそのまま読んでもらった方が良い^[解説できない内容が多いので…]のですが、一応解説を試みます。
 
 `ImageCacache`では次の3つの`Map`を管理しています。
 この`Map`は順序を持っています。このため`first`で古いものから、`last`で新しいものからアクセスできます。
@@ -794,7 +794,7 @@ https://pub.dev/packages/taro
 
 https://github.com/koji-1009/taro
 
-作り上げた後に見てみると、自分が「`placeholder`はパーセント表示しないだろう……」とカットした箇所を、`cached_network_image`ではプラットフォームを考慮してしっかりと作り込んでいたりします。
-より正しく実装しようとすると、ああいった構成になるんだなぁ……と学ぶことができました。
+作り上げた後に見てみると、自分が「`placeholder`はパーセント表示しないだろう…」とカットした箇所を、`cached_network_image`ではプラットフォームを考慮してしっかりと作り込んでいたりします。
+より正しく実装しようとすると、ああいった構成になるんだなぁ…と学ぶことができました。
 
 以上。メモ書きでした。お付き合いいただきありがとうございます。
