@@ -349,7 +349,7 @@ https://github.com/flutter/flutter/blob/3.16.0/packages/flutter/lib/src/painting
 読み解ける方はそのまま読んでもらった方が良い^[解説できない内容が多いので……]のですが、一応解説を試みます。
 
 `ImageCacache`では次の3つの`Map`を管理しています。
-この`Map`は順序を持っています。このため`first`で古いものから、`last`で新しいものからアクセスすることができます。
+この`Map`は順序を持っています。このため`first`で古いものから、`last`で新しいものからアクセスできます。
 
 * `final Map<Object, _PendingImage> _pendingImages = <Object, _PendingImage>{};`
 * `final Map<Object, _CachedImage> _cache = <Object, _CachedImage>{};`

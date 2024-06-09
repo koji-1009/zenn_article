@@ -45,7 +45,7 @@ VSCodeには、[Explorer File Nesting](https://code.visualstudio.com/updates/v1_
 https://github.com/FlutterKaigi/conference-app-2023/blob/main/.vscode/settings.json#L16-L18
 
 ファイルのパターンとして、`.mock.dart`などを追加することで、まとめるファイルの種類を追加することもできます。
-上記のように`.vscode/settings.json`に設定を追加することで、プロジェクトに参加する全ての人に対して、同じ設定を適用することができます。
+上記のように`.vscode/settings.json`に設定を追加することで、プロジェクトに参加する全ての人に対して、同じ設定を適用できます。
 
 ##### Android Studio/IntelliJ IDEA
 
