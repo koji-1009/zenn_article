@@ -8,7 +8,7 @@
       },
       "devDependencies": {
         "danger": "^12.3.4",
-        "textlint": "^14.5.0",
+        "textlint": "^14.6.0",
         "textlint-rule-preset-ja-technical-writing": "^10.0.2",
       },
       "peerDependencies": {
@@ -899,7 +899,7 @@
 
     "xtend": ["xtend@4.0.2", "", {}, "sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ=="],
 
-    "zenn-cli": ["zenn-cli@0.1.158", "", { "bin": { "zenn": "dist/server/zenn.js" } }, "sha512-bvQ96fK+9qw+SKxEmncg/rYU+1u0V6Bh+HuV8By+u4L+VZt/jn9hFyL+KWj/2ncSBDtcEBo6XLsCdNLxlUo+RA=="],
+    "zenn-cli": ["zenn-cli@0.1.159", "", { "bin": { "zenn": "dist/server/zenn.js" } }, "sha512-a4/Lkg3DnxWlYh2Z0abuvvmpQc0BnfTQrVyNQxYm+IOrwGJepZabwWTT0Q3eZ3r7hAV/xd8MZsmZL3y3pzMpAA=="],
 
     "zlibjs": ["zlibjs@0.3.1", "", {}, "sha512-+J9RrgTKOmlxFSDHo0pI1xM6BLVUv+o0ZT9ANtCxGkjIVCCUdx9alUF8Gm+dGLKbkkkidWIHFDZHDMpfITt4+w=="],
 
