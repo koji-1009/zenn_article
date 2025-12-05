@@ -5,7 +5,7 @@
     "": {
       "name": "zenn_article",
       "dependencies": {
-        "zenn-cli": "^0.2.9",
+        "zenn-cli": "^0.2.10",
       },
       "devDependencies": {
         "danger": "^12.3.4",
