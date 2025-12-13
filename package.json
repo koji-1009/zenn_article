@@ -1,31 +1,31 @@
 {
-  "name": "zenn_article",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/koji-1009/zenn_article.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/koji-1009/zenn_article/issues"
-  },
-  "homepage": "https://github.com/koji-1009/zenn_article#readme",
-  "dependencies": {
-    "zenn-cli": "^0.2.10"
-  },
-  "devDependencies": {
-    "danger": "^13.0.5",
-    "textlint": "^15.5.0",
-    "textlint-rule-preset-ja-technical-writing": "^12.0.2"
-  },
-  "peerDependencies": {
-    "typescript": "^5.7.3"
-  }
+	"name": "zenn_article",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/koji-1009/zenn_article.git"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/koji-1009/zenn_article/issues"
+	},
+	"homepage": "https://github.com/koji-1009/zenn_article#readme",
+	"dependencies": {
+		"zenn-cli": "^0.2.10"
+	},
+	"devDependencies": {
+		"danger": "^13.0.5",
+		"textlint": "^15.5.0",
+		"textlint-rule-preset-ja-technical-writing": "^12.0.2"
+	},
+	"peerDependencies": {
+		"typescript": "^5.7.3"
+	}
 }
