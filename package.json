@@ -21,9 +21,9 @@
     "zenn-cli": "^0.2.10"
   },
   "devDependencies": {
-    "danger": "^12.3.4",
-    "textlint": "^14.8.4",
-    "textlint-rule-preset-ja-technical-writing": "^10.0.2"
+    "danger": "^13.0.5",
+    "textlint": "^15.5.0",
+    "textlint-rule-preset-ja-technical-writing": "^12.0.2"
   },
   "peerDependencies": {
     "typescript": "^5.7.3"
