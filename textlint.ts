@@ -1,43 +1,35 @@
-import { danger, message, warn, fail } from "danger";
+import { danger, fail, message, warn } from "danger";
 import { createLinter, loadTextlintrc } from "textlint";
 
 async function main() {
-  // Load textlint configuration
-  // https://textlint.github.io/docs/use-as-modules.html#apis
-  const descriptor = await loadTextlintrc();
-  const linter = createLinter({ descriptor });
+	// Load textlint configuration
+	const descriptor = await loadTextlintrc();
+	const linter = createLinter({ descriptor });
 
-  // Get the list of changed files
-  // https://danger.systems/js/reference.html#git
-  const files = danger.git.modified_files.concat(danger.git.created_files);
+	// Get the list of changed files
+	const files = [...danger.git.modified_files, ...danger.git.created_files];
 
-  // Run textlint if file is a markdown or ARB file
-  const markdownFiles = files.filter((file) => file.endsWith(".md"));
-  const arbFiles = files.filter((file) => file.endsWith(".arb"));
+	// Filter markdown files in one pass
+	const targetFiles = files.filter((file) => file.endsWith(".md"));
 
-  // Lint the files
-  [...markdownFiles, ...arbFiles].forEach((file) => {
-    linter.lintFiles([file]).then((results) => {
-      results.forEach((result) => {
-        result.messages.forEach((m) => {
-          switch (m.severity) {
-            // TextlintRuleSeverityLevel.none || TextlintRuleSeverityLevel.info
-            case 0:
-              message(m.message, file, m.loc.start.line);
-              break;
-            // TextlintRuleSeverityLevel.warning
-            case 1:
-              warn(m.message, file, m.loc.start.line);
-              break;
-            // TextlintRuleSeverityLevel.error
-            case 2:
-              fail(m.message, file, m.loc.start.line);
-              break;
-          }
-        });
-      });
-    });
-  });
+	// Lint all files in parallel and wait for all results
+	const allResults = await Promise.all(
+		targetFiles.map((file) =>
+			linter.lintFiles([file]).then((results) => ({ file, results })),
+		),
+	);
+
+	// Map severity to reporter
+	const severityMap = [message, warn, fail];
+
+	for (const { file, results } of allResults) {
+		for (const result of results) {
+			for (const m of result.messages) {
+				const reporter = severityMap[m.severity] || message;
+				reporter(m.message, file, m.loc?.start?.line);
+			}
+		}
+	}
 }
 
 main();
