@@ -5,7 +5,7 @@
     "": {
       "name": "zenn_article",
       "dependencies": {
-        "zenn-cli": "^0.4.4",
+        "zenn-cli": "^0.4.5",
       },
       "devDependencies": {
         "danger": "^13.0.5",
@@ -988,7 +988,7 @@
 
     "xtend": ["xtend@4.0.2", "", {}, "sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ=="],
 
-    "zenn-cli": ["zenn-cli@0.4.4", "", { "dependencies": { "open": "^10.2.0", "package-manager-detector": "^1.6.0" }, "bin": { "zenn": "dist/server/zenn.js" } }, "sha512-Z5fKwueKzSgjIOp/xCC5O1unkN4XPknHT5V8v6xRqhjk9n5Io6Ul0m701slgx43+X1D+5Ch5yAhpPr/f+M2Tug=="],
+    "zenn-cli": ["zenn-cli@0.4.5", "", { "dependencies": { "open": "^10.2.0", "package-manager-detector": "^1.6.0" }, "bin": { "zenn": "dist/server/zenn.js" } }, "sha512-lrG5Bb8j8jhVKRLE1T6Fe/wYV+jBDaRZFHzDatS/tcxcoV1oNaK812PeXYr2rtvH77trZaIag6fYltGXAIN0oA=="],
 
     "zlibjs": ["zlibjs@0.3.1", "", {}, "sha512-+J9RrgTKOmlxFSDHo0pI1xM6BLVUv+o0ZT9ANtCxGkjIVCCUdx9alUF8Gm+dGLKbkkkidWIHFDZHDMpfITt4+w=="],
 
