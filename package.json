@@ -23,9 +23,7 @@
 	"devDependencies": {
 		"danger": "^14.0.7",
 		"textlint": "^15.8.0",
-		"textlint-rule-preset-ja-technical-writing": "^12.0.2"
-	},
-	"peerDependencies": {
-		"typescript": "^7.0.2"
+		"textlint-rule-preset-ja-technical-writing": "^12.0.2",
+		"typescript": "^6.0.3"
 	}
 }
