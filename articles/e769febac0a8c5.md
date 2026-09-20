@@ -2,9 +2,8 @@
 title: "Flutterでコード生成ライブラリを使う時のコード管理について"
 emoji: "🏃"
 type: "tech" ## tech: 技術記事 / idea: アイデア
-topics: [
-    "flutter",
-  ]
+topics:
+  - "flutter"
 published: true
 published_at: "2023-12-09 21:00"
 ---
