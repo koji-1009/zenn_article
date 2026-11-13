@@ -25,7 +25,7 @@ https://github.com/openapi-ts/openapi-typescript/issues/2874
 
 作ってみると結構便利なものになりました。特徴は次の4つです。
 
-- 速い: GitHubやStripeの大きな定義でも、型の生成は0.3秒ほど
+- 速い: GitHubやStripeの大きな定義でも、型の生成は0.3秒かからない
 - 依存が少ない: 依存は `yaml` だけで、クライアントは何もimportしない
 - クライアントが便利: openapi-fetchではできなかった、返却値をステータスコードごとに型チェックできる
 - OpenAPIの定義に忠実: TypeScriptで表現できる範囲で、スキーマが受け付ける値を型に反映する
@@ -155,7 +155,7 @@ export type Problem = {
 };
 ```
 
-イメージ通りのものが出力されています。やったね。
+イメージ通りのものが出力されています。やったね。`User` の `id` は `readOnly` なので、リクエストで送る型として、`id` を除いた `UserInput` も出力されます。
 
 ### クライアント
 
@@ -208,21 +208,33 @@ const api = createClient<paths>({
 
 ミドルウェアの仕組みは、意図的に用意していません。汎用的な仕組みを用意するより、素朴な設計と実装にして、任意の `fetch` を差し込んでもらった方が良いだろうと考えています。
 
+受け取ったbodyを実行時に検証したいときは、`createClient` の `onData` を使います。パースしたbodyをすべて受け取るので、zodやvalibotのスキーマを差し込めます。
+
 ### 返却値をステータスごとに型チェックできる
 
 openapi-fetchと比べて一番便利なのが、ここです。
 
 openapi-fetchの戻り値は `{ data, error, response }` です。`data` は2xxのレスポンスをすべてまとめたunion、`error` はそれ以外のレスポンスをすべてまとめたunionで、`response` はただの `Response` です。そのため、`response.status` で分岐しても、`error` の型は絞り込まれません。
 
-上の定義に、400のレスポンスを足してみます。`ValidationError` は、`errors: string[]` を持つスキーマです。
+上の定義に、400のレスポンスと、そのbodyの `ValidationError` を足してみます。
 
 ```yaml
+# paths./users/{id}.get.responses に追加
         "400":
           description: invalid
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ValidationError"
+# components.schemas に追加
+    ValidationError:
+      type: object
+      required: [errors]
+      properties:
+        errors:
+          type: array
+          items:
+            type: string
 ```
 
 openapi-fetchでは、400で分岐しても `error` は `ValidationError | Problem` のままです。
@@ -302,10 +314,12 @@ export function useApiQuery<Path extends PathsOf<paths, "get">>(
 2xxを `data` に、それ以外を `error` として投げます。`error` もステータスごとのunionなので、`status` で分岐するとbodyの型が絞り込まれます。
 
 ```ts
-const { data, error } = useApiQuery("/users/{id}", { path: { id } });
-if (error?.status === 400) error.data.errors; // ValidationError
-if (error?.status === 404) error.data.message; // Problem
-data?.name; // User
+function UserName({ id }: { id: number }) {
+  const { data, error } = useApiQuery("/users/{id}", { path: { id } });
+  if (error?.status === 400) return error.data.errors.join(", "); // ValidationError
+  if (error?.status === 404) return error.data.message; // Problem
+  return data?.name; // User
+}
 ```
 
 hookの中にも、呼び出す側にも、型アサーションはありません。パスやパラメーターを間違えれば、`api.get` を直接呼ぶときと同じく型エラーになります。
@@ -340,7 +354,7 @@ kanagata init -o src/api/client.ts
 
 - `allOf` や隣にある `type` などはintersectionで組み合わせ、`oneOf` / `anyOf` はunionにする（`A & B & (C | D)`）
 - `oneOf` のメンバーのうち、キーを必須にするだけのものは、互いのキーを持たない型にする。「どれか1つだけ」を、TypeScriptで表せる範囲で型にするため
-- `discriminator` は読まない。OpenAPI 3.0.4 / 3.1.1で、受け付ける値を変えてはいけないとされているため^["Note that `discriminator` MUST NOT change the validation outcome of the schema."（[OpenAPI 3.0.4](https://spec.openapis.org/oas/v3.0.4.html#discriminator-object)、[OpenAPI 3.1.1](https://spec.openapis.org/oas/v3.1.1.html#discriminator-object) の Discriminator Object）]
+- `discriminator` は読まない。OpenAPI 3.0.4 / 3.1.1で、受け付ける値を変えてはいけないとされているため[^discriminator]
 - `not` や `if` / `then` / `else` など、TypeScriptで表せないキーワードは無視して、警告を出す
 
 仕様の文言と実際の使われ方がずれているところは、既定では仕様の文言に従い、使われ方に合わせた読み方はオプションで選べるようにしています。OpenAPI 3.0の `nullable` がその例です（後述）。
@@ -355,7 +369,7 @@ OpenAPI 3.2で追加された `query` メソッド、`additionalOperations`、`i
 await api.request("COPY", "/files/{name}", { path: { name: "a.png" } });
 ```
 
-私自身、まだ `query` メソッドを使ったことがないので何ともなのですが、引数の並びを見るに大体こんな感じじゃないかなって気はしています。手書きするのか？ という気はしますが、手書きできる様にしておくのも、また大事なはず。
+私自身、まだ `query` メソッドを使ったことがないので何ともなのですが、引数の並びを見るに大体こんな感じじゃないかなって気はしています。手書きするのか？ という気はしますが、手書きできる様にしておくのも、また大事なはず。なお、kanagataのテストでは、`query` メソッドの呼び出しが型付けされることと、bodyを付けて `QUERY` を送れることを確かめています。
 
 ### AIに書かせ、器は人が決める
 
@@ -578,7 +592,7 @@ openapi-typescriptはopenapi-fetchと、Kubbは `@kubb/plugin-ts` と合わせ�
 
 kanagataは `typescript` をpeer dependencyに持ちません。機能を絞ったためではありますが、依存は削れるところまで削れたかなと思います。
 
-### 正確さ
+### 型の比較
 
 生成された型は、4つとも `strict` かつ `skipLibCheck: false` の `tsc` でエラーなく通りました（Kubbの出力は拡張子なしでimportするので、`moduleResolution: bundler` で検査しました）。そのうえで、`components.schemas` の型を1つずつ、TypeScriptのcheckerで互いに代入できるかを調べました。
 
@@ -587,7 +601,7 @@ kanagataは `typescript` をpeer dependencyに持ちません。機能を絞っ�
 | GitHub（1010） | 564（639） | 843（803） | 457（480） |
 | Stripe（1538） | 912（1228） | 1171（1123） | 912（1228） |
 
-括弧の外はkanagataの既定、括弧内は `--loose-nullable` を付けた場合です。既定では、後述する `nullable` の読み方の違いも加わります。GitHubのKubbの列は、型の名前の付け方が違って対応を取れなかった28個を除いています。
+括弧の外はkanagataの既定、括弧内は `--loose-nullable` を付けた場合です。既定では、後述する `nullable` の読み方の違いも加わります。GitHubのKubbの列は、型の名前の付け方が違って対応を取れなかった28個を除いています。Stripeでopenapi-typescriptとKubbの数が同じなのは、一致しない626個（括弧内では310個）がどちらも同じ型だったためです。どちらも、空のobjectと `nullable` の扱いでkanagataと違います。
 
 この数は、kanagataの型と一致した数で、正確さの点数ではありません。一致しない型は、受け付ける値が異なるということです。どちらが定義に忠実かは、個別にスキーマと照らして確かめます。
 
@@ -646,7 +660,7 @@ const viewType: components["schemas"]["public-user"]["user_view_type"] = undefin
 // error TS2322: Type 'undefined' is not assignable to type '"public"'.
 ```
 
-OpenAPI 3.0.4 / 3.1.1では、`discriminator` は受け付ける値を変えてはいけないとされています^["Note that `discriminator` MUST NOT change the validation outcome of the schema."（[OpenAPI 3.0.4](https://spec.openapis.org/oas/v3.0.4.html#discriminator-object)、[OpenAPI 3.1.1](https://spec.openapis.org/oas/v3.1.1.html#discriminator-object) の Discriminator Object）]。前述のとおり、kanagataは `discriminator` を読まないので、`user_view_type` は必須でない `string` のままです。
+OpenAPI 3.0.4 / 3.1.1では、`discriminator` は受け付ける値を変えてはいけないとされています[^discriminator]。前述のとおり、kanagataは `discriminator` を読まないので、`user_view_type` は必須でない `string` のままです。
 
 :::
 
@@ -734,7 +748,7 @@ const id: SimpleUser["id"] = 1;
 
 GitHubでKubbと一致しない型の多くは、ユーザーやリポジトリの `id` がこれで `bigint` になり、参照する型に広がったものです。kanagataは、`format` に関わらず `integer` を `number` にします。
 
-なお、`number` では、安全な整数の範囲（`Number.MAX_SAFE_INTEGER`）を超える値の精度は保証できません。`bigint` で正確に扱うには、JSONをパースする時点で対応が必要です。ただ、Kubbのクライアント（`@kubb/plugin-client` 6.0.1）もレスポンスを `JSON.parse` で読むので、型が `bigint` でも値は `number` になります。
+なお、`number` では、安全な整数の範囲（`Number.MAX_SAFE_INTEGER`）を超える値の精度は保証できません。`bigint` で正確に扱うには、JSONをパースする時点で対応が必要です。ただ、Kubbのクライアント（`@kubb/plugin-client` 6.0.1。比較とは別にソースを読んで確かめました。バージョン番号は別系統で、kubb 5系の `@kubb/plugin-ts` ^5.5.1 に依存しています）もレスポンスを `JSON.parse` で読むので、型が `bigint` でも値は `number` になります。
 
 :::
 
@@ -765,7 +779,7 @@ OpenAPI 3.0の `nullable: true` は、仕様の文言（3.0.3）では、同じ�
 
 GitHubの定義に載っているDependabotアラートのレスポンス例では、`dismissed_reason` は `null` です。
 
-型を生成するツールの多くは、「この値かnull」と読んで `null` を足します。`null` のない `enum` について、同じ定義で6つのツールを試した結果です。
+型を生成するツールの多くは、「この値かnull」と読んで `null` を足します。`null` のない `enum` について、それを1つだけ持つ小さな定義で6つのツールを試し、GitHubの定義でも確かめた結果です（orvalとswagger-typescript-apiは、小さな定義だけで確かめています）。
 
 | ツール | `null` のない `nullable` な `enum` |
 | --- | --- |
@@ -822,3 +836,5 @@ OpenAPI 3.0の定義では、`nullable` の読み方の違いで、`null` の付
 ## おわりに
 
 自分が欲しいなと思うものをまとめたところ、そこそこ使い勝手があるツールになったんじゃないかなと思います。ぜひお試しください。
+
+[^discriminator]: "Note that `discriminator` MUST NOT change the validation outcome of the schema."（[OpenAPI 3.0.4](https://spec.openapis.org/oas/v3.0.4.html#discriminator-object)、[OpenAPI 3.1.1](https://spec.openapis.org/oas/v3.1.1.html#discriminator-object) の Discriminator Object）
