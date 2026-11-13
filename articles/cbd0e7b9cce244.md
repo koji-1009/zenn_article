@@ -332,20 +332,20 @@ kanagata init -o src/api/client.ts
 
 コピーしたファイルは、`kanagata/client` の代わりにimportして、自由に書き換えられます。万が一kanagataの更新が止まっても、実行時に動くコードは手元に残ります。好きにいじってもらっても、なんらかの事情がkanagataに生じたので一時的にワークアラウンドしてもらっても良しです。
 
-この仕組みは開発途中のあれこれで追加し、そのままにしているのですが。ライブラリを入れた後、別のものに入れ替えざるを得ないケースが生じることを踏まえると、結構良い仕組みなんじゃないかと思っています。
+この仕組みは開発途中のあれこれで追加し、そのままにしています。ライブラリを入れた後、別のものに入れ替えざるを得ないことがあります。そういう時に、結構便利になりそうです。
 
 ### スキーマが受け付ける値に型を合わせる
 
 型は、ほかのツールの出力ではなく、スキーマが受け付ける値に合わせています。たとえば次のような扱いです。
 
-- `allOf`、`oneOf` / `anyOf`、隣にある `type` などは、すべてintersectionにする（`A & B & (C | D)`）
+- `allOf` や隣にある `type` などはintersectionで組み合わせ、`oneOf` / `anyOf` はunionにする（`A & B & (C | D)`）
 - `oneOf` のメンバーのうち、キーを必須にするだけのものは、互いのキーを持たない型にする。「どれか1つだけ」を、TypeScriptで表せる範囲で型にするため
 - `discriminator` は読まない。OpenAPI 3.0.4 / 3.1.1で、受け付ける値を変えてはいけないとされているため^["Note that `discriminator` MUST NOT change the validation outcome of the schema."（[OpenAPI 3.0.4](https://spec.openapis.org/oas/v3.0.4.html#discriminator-object)、[OpenAPI 3.1.1](https://spec.openapis.org/oas/v3.1.1.html#discriminator-object) の Discriminator Object）]
 - `not` や `if` / `then` / `else` など、TypeScriptで表せないキーワードは無視して、警告を出す
 
 仕様の文言と実際の使われ方がずれているところは、既定では仕様の文言に従い、使われ方に合わせた読み方はオプションで選べるようにしています。OpenAPI 3.0の `nullable` がその例です（後述）。
 
-テストは、手書きの入力と期待する `.d.ts` の組で書いています。加えて、GitHub・Stripe・Petstoreの定義を固定したコミットで取得し、生成した型を `tsc` で検査しています。Opus 5.5に書いてもらったので、この進め方がハマった感じがあります。
+テストは、手書きの入力と期待する `.d.ts` の組で書いています。加えて、GitHub・Stripe・Petstoreの定義を固定したコミットで取得し、生成した型を `tsc` で検査しています。
 
 ### OpenAPI 3.2
 
@@ -589,9 +589,9 @@ kanagataは `typescript` をpeer dependencyに持ちません。機能を絞っ�
 
 括弧の外はkanagataの既定、括弧内は `--loose-nullable` を付けた場合です。既定では、後述する `nullable` の読み方の違いも加わります。GitHubのKubbの列は、型の名前の付け方が違って対応を取れなかった28個を除いています。
 
-この数は、kanagataの型と一致した数で、正確さの点数ではありません。一致しない型は、どちらかが定義からずれています。どちらがずれているかは、次の各項目で確かめています。
+この数は、kanagataの型と一致した数で、正確さの点数ではありません。一致しない型は、受け付ける値が異なるということです。どちらが定義に忠実かは、個別にスキーマと照らして確かめます。
 
-一致しない型の多くは、参照先の型が違うことによるものです。原因を辿ると、少数のパターンにまとまりました。それぞれ、定義どおりの値を代入して `tsc` で確かめました。詳しく見たい項目を開いてください。
+なお、一致しない型の多くは、参照先の型が違うことによるものです。原因を辿ると、少数のパターンにまとまりました。それぞれ、定義どおりの値を代入して `tsc` で確かめました。詳しく見たい項目を開いてください。
 
 :::details `default` があるプロパティが必須になる（openapi-typescript）
 
@@ -700,6 +700,9 @@ GitHubのCodeQLの `code-scanning/create-variant-analysis` のリクエストbod
 kanagataは、キーを必須にするだけのメンバー同士では、それぞれがほかのメンバーのキーを持たない型にしています。
 
 ```ts
+type RequestBody =
+  operations["code-scanning/create-variant-analysis"]["requestBody"]["content"]["application/json"];
+
 const body: RequestBody = {
   language: "javascript",
   query_pack: "...",
